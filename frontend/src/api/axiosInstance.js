@@ -1,84 +1,76 @@
 import axios from 'axios'
 
 const api = axios.create({
-  baseURL: '/api',
+  baseURL: 'http://localhost:8000/api',
   headers: { 'Content-Type': 'application/json' },
 })
 
-// ── Intercepteur REQUEST : injecter le token ──────────────────────────────────
-api.interceptors.request.use(
-  (config) => {
-    const access = localStorage.getItem('access_token')
-    if (access) {
-      config.headers.Authorization = `Bearer ${access}`
-    }
-    return config
-  },
-  (error) => Promise.reject(error)
-)
+// ── Clés localStorage — DOIVENT correspondre à TOKEN_KEYS dans AuthContext ────
+const KEYS = { access: 'access', refresh: 'refresh' }
 
-// ── Intercepteur RESPONSE : gérer l'expiration du token ──────────────────────
+// ── Injecter le token sur chaque requête ──────────────────────────────────────
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem(KEYS.access)
+  if (token) config.headers.Authorization = `Bearer ${token}`
+  return config
+})
+
+// ── Rafraîchir le token automatiquement si 401 ────────────────────────────────
 let isRefreshing = false
 let failedQueue  = []
 
 const processQueue = (error, token = null) => {
-  failedQueue.forEach((prom) => {
-    if (error) prom.reject(error)
-    else prom.resolve(token)
-  })
+  failedQueue.forEach((p) => error ? p.reject(error) : p.resolve(token))
   failedQueue = []
 }
 
 api.interceptors.response.use(
-  (response) => response,
-  async (error) => {
-    const originalRequest = error.config
+  (res) => res,
+  async (err) => {
+    const original = err.config
 
-    if (error.response?.status === 401 && !originalRequest._retry) {
+    if (err.response?.status === 401 && !original._retry) {
       if (isRefreshing) {
-        // File d'attente pendant le refresh
         return new Promise((resolve, reject) => {
           failedQueue.push({ resolve, reject })
+        }).then((token) => {
+          original.headers.Authorization = `Bearer ${token}`
+          return api(original)
         })
-          .then((token) => {
-            originalRequest.headers.Authorization = `Bearer ${token}`
-            return api(originalRequest)
-          })
-          .catch((err) => Promise.reject(err))
       }
 
-      originalRequest._retry = true
-      isRefreshing = true
+      original._retry = true
+      isRefreshing    = true
 
-      const refreshToken = localStorage.getItem('refresh_token')
-      if (!refreshToken) {
-        // Pas de refresh token → déconnexion
+      const refresh = localStorage.getItem(KEYS.refresh)
+      if (!refresh) {
+        isRefreshing = false
         localStorage.clear()
         window.location.href = '/login'
-        return Promise.reject(error)
+        return Promise.reject(err)
       }
 
       try {
-        const { data } = await axios.post('/api/auth/token/refresh/', {
-          refresh: refreshToken,
-        })
-        const newAccess = data.access
-        localStorage.setItem('access_token', newAccess)
-        api.defaults.headers.Authorization = `Bearer ${newAccess}`
-        processQueue(null, newAccess)
-        originalRequest.headers.Authorization = `Bearer ${newAccess}`
-        return api(originalRequest)
-      } catch (refreshError) {
-        processQueue(refreshError, null)
+        const { data } = await axios.post(
+          'http://localhost:8000/api/auth/token/refresh/',
+          { refresh }
+        )
+        localStorage.setItem(KEYS.access, data.access)
+        api.defaults.headers.Authorization = `Bearer ${data.access}`
+        processQueue(null, data.access)
+        original.headers.Authorization = `Bearer ${data.access}`
+        return api(original)
+      } catch (refreshErr) {
+        processQueue(refreshErr, null)
         localStorage.clear()
         window.location.href = '/login'
-        return Promise.reject(refreshError)
+        return Promise.reject(refreshErr)
       } finally {
         isRefreshing = false
       }
     }
 
-    return Promise.reject(error)
+    return Promise.reject(err)
   }
 )
 

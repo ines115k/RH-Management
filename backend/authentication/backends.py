@@ -1,7 +1,9 @@
 """
-Backend d'authentification JWT pour MongoEngine.
-Remplace le backend ORM par défaut de djangorestframework-simplejwt.
+Backend JWT personnalisé pour MongoEngine.
+Lit le header Authorization: Bearer <token>,
+valide le JWT et retourne l'utilisateur MongoDB.
 """
+from bson import ObjectId
 from rest_framework.authentication import BaseAuthentication
 from rest_framework.exceptions import AuthenticationFailed
 from rest_framework_simplejwt.tokens import AccessToken
@@ -10,16 +12,12 @@ from .models import User
 
 
 class MongoJWTAuthentication(BaseAuthentication):
-    """
-    Lit le header :  Authorization: Bearer <access_token>
-    Valide le JWT et retourne l'objet User MongoDB.
-    """
 
     def authenticate(self, request):
         header = request.headers.get('Authorization', '')
 
         if not header.startswith('Bearer '):
-            return None  # Laisse passer — pas une requête JWT
+            return None
 
         raw_token = header.split(' ', 1)[1].strip()
         if not raw_token:
@@ -32,10 +30,13 @@ class MongoJWTAuthentication(BaseAuthentication):
 
         user_id = validated_token.get('user_id')
         if not user_id:
-            raise AuthenticationFailed("Token invalide : champ user_id manquant.")
+            raise AuthenticationFailed("Token invalide : user_id manquant.")
 
+        # user_id est une str (ex: "6613a2f4e3b1c2d3e4f50001")
+        # On convertit en ObjectId pour MongoEngine
         try:
-            user = User.objects.get(pk=user_id)
+            oid = ObjectId(str(user_id))
+            user = User.objects.get(pk=oid)
         except Exception:
             raise AuthenticationFailed("Utilisateur introuvable ou token expiré.")
 

@@ -11,23 +11,29 @@ ALLOWED_HOSTS = ['*']
 
 # ── Apps ──────────────────────────────────────────────────────────────────────
 INSTALLED_APPS = [
-    # Pas de django.contrib.auth — on utilise MongoEngine
+    # Apps Django obligatoires (simplejwt en a besoin)
+    'django.contrib.admin',
+    'django.contrib.auth',
     'django.contrib.contenttypes',
+    'django.contrib.sessions',
+    'django.contrib.messages',
     'django.contrib.staticfiles',
+    # Third-party
     'rest_framework',
     'corsheaders',
     # Apps du projet
     'authentication',
     'employees',
-    'attendance',
-    'payroll',
-    'recruitment',
 ]
 
 MIDDLEWARE = [
-    'corsheaders.middleware.CorsMiddleware',         # doit être EN PREMIER
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
+    'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
+    'django.middleware.csrf.CsrfViewMiddleware',
+    'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
@@ -38,46 +44,35 @@ TEMPLATES = [{
     'DIRS': [],
     'APP_DIRS': True,
     'OPTIONS': {'context_processors': [
+        'django.template.context_processors.debug',
         'django.template.context_processors.request',
+        'django.contrib.auth.context_processors.auth',
+        'django.contrib.messages.context_processors.messages',
     ]},
 }]
 
 WSGI_APPLICATION = 'hrm_backend.wsgi.application'
 
-# ── MongoDB via MongoEngine ───────────────────────────────────────────────────
-MONGO_DB_NAME = config('MONGO_DB_NAME', default='hrm_db')
-MONGO_HOST    = config('MONGO_HOST',    default='localhost')
-MONGO_PORT    = config('MONGO_PORT',    default=27017, cast=int)
-MONGO_USER    = config('MONGO_USER',    default='')
-MONGO_PASS    = config('MONGO_PASS',    default='')
-
-if MONGO_USER and MONGO_PASS:
-    mongoengine.connect(
-        db=MONGO_DB_NAME,
-        host=MONGO_HOST,
-        port=MONGO_PORT,
-        username=MONGO_USER,
-        password=MONGO_PASS,
-        authentication_source='admin',
-    )
-else:
-    mongoengine.connect(
-        db=MONGO_DB_NAME,
-        host=MONGO_HOST,
-        port=MONGO_PORT,
-    )
-
-# On utilise un backend Django dummy (pas d'ORM Django)
+# ── SQLite pour Django auth/admin/sessions ────────────────────────────────────
+# simplejwt a besoin de django.contrib.auth → besoin d'une vraie DB SQL
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.dummy',
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': BASE_DIR / 'db.sqlite3',
     }
 }
+
+# ── MongoDB pour les données métier (employés, congés...) ────────────────────
+mongoengine.connect(
+    db=config('MONGO_DB_NAME', default='hrm_db'),
+    host=config('MONGO_HOST', default='localhost'),
+    port=config('MONGO_PORT', default=27017, cast=int),
+)
 
 # ── DRF ──────────────────────────────────────────────────────────────────────
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
-        'authentication.backends.MongoJWTAuthentication',
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
     ),
     'DEFAULT_PERMISSION_CLASSES': (
         'rest_framework.permissions.IsAuthenticated',
@@ -101,7 +96,7 @@ SIMPLE_JWT = {
 CORS_ALLOWED_ORIGINS = [
     'http://localhost:3000',
     'http://127.0.0.1:3000',
-    'http://localhost:5173',   # Vite dev server
+    'http://localhost:5173',
     'http://127.0.0.1:5173',
 ]
 CORS_ALLOW_CREDENTIALS = True
