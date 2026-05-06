@@ -1,17 +1,23 @@
 """
-Backend JWT personnalisé pour MongoEngine.
-Lit le header Authorization: Bearer <token>,
-valide le JWT et retourne l'utilisateur MongoDB.
+Backend JWT pour MongoEngine.
+
+On utilise BaseAuthentication (pas JWTAuthentication) pour éviter
+tout lookup ORM Django. AccessToken est utilisé uniquement pour la
+vérification cryptographique du token (signature + expiration),
+sans jamais appeler User.objects.get() de Django.
 """
 from bson import ObjectId
 from rest_framework.authentication import BaseAuthentication
 from rest_framework.exceptions import AuthenticationFailed
-from rest_framework_simplejwt.tokens import AccessToken
-from rest_framework_simplejwt.exceptions import InvalidToken, TokenError
+
 from .models import User
 
 
 class MongoJWTAuthentication(BaseAuthentication):
+    """
+    Authentification JWT avec MongoEngine.
+    Décode manuellement le token JWT sans passer par l'ORM Django.
+    """
 
     def authenticate(self, request):
         header = request.headers.get('Authorization', '')
@@ -23,27 +29,44 @@ class MongoJWTAuthentication(BaseAuthentication):
         if not raw_token:
             return None
 
-        try:
-            validated_token = AccessToken(raw_token)
-        except (InvalidToken, TokenError) as exc:
-            raise AuthenticationFailed(f"Token invalide : {exc}")
+        # Décoder et valider le token sans toucher l'ORM Django
+        payload = self._decode_token(raw_token)
 
-        user_id = validated_token.get('user_id')
+        user_id = payload.get('user_id')
         if not user_id:
-            raise AuthenticationFailed("Token invalide : user_id manquant.")
+            raise AuthenticationFailed("Token invalide : claim 'user_id' manquant.")
 
-        # user_id est une str (ex: "6613a2f4e3b1c2d3e4f50001")
-        # On convertit en ObjectId pour MongoEngine
+        # Lookup MongoDB
         try:
-            oid = ObjectId(str(user_id))
+            oid  = ObjectId(str(user_id))
             user = User.objects.get(pk=oid)
         except Exception:
-            raise AuthenticationFailed("Utilisateur introuvable ou token expiré.")
+            raise AuthenticationFailed("Utilisateur introuvable.")
 
         if not user.is_active:
             raise AuthenticationFailed("Ce compte est désactivé.")
 
-        return (user, validated_token)
+        return (user, payload)
+
+    def _decode_token(self, raw_token):
+        """
+        Valide le token JWT en utilisant PyJWT directement —
+        sans importer quoi que ce soit de django.contrib.auth.
+        """
+        from django.conf import settings
+        import jwt as pyjwt
+
+        try:
+            payload = pyjwt.decode(
+                raw_token,
+                settings.SECRET_KEY,
+                algorithms=['HS256'],
+            )
+            return payload
+        except pyjwt.ExpiredSignatureError:
+            raise AuthenticationFailed("Token expiré. Veuillez vous reconnecter.")
+        except pyjwt.InvalidTokenError as e:
+            raise AuthenticationFailed(f"Token invalide : {e}")
 
     def authenticate_header(self, request):
         return 'Bearer realm="api"'

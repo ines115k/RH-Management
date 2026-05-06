@@ -10,30 +10,26 @@ DEBUG      = config('DEBUG', default=True, cast=bool)
 ALLOWED_HOSTS = ['*']
 
 # ── Apps ──────────────────────────────────────────────────────────────────────
+# django.contrib.auth est requis par rest_framework_simplejwt au démarrage.
+# On le garde dans INSTALLED_APPS mais on désactive ses migrations (voir plus bas)
+# et on n'utilise JAMAIS son User — on utilise authentication.models.User (MongoEngine).
 INSTALLED_APPS = [
-    # Apps Django obligatoires (simplejwt en a besoin)
-    'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
-    'django.contrib.sessions',
-    'django.contrib.messages',
     'django.contrib.staticfiles',
-    # Third-party
     'rest_framework',
     'corsheaders',
-    # Apps du projet
     'authentication',
     'employees',
+    'attendance',
+    'payroll',
+    'recruitment',
 ]
 
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
-    'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
-    'django.middleware.csrf.CsrfViewMiddleware',
-    'django.contrib.auth.middleware.AuthenticationMiddleware',
-    'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
@@ -44,35 +40,55 @@ TEMPLATES = [{
     'DIRS': [],
     'APP_DIRS': True,
     'OPTIONS': {'context_processors': [
-        'django.template.context_processors.debug',
         'django.template.context_processors.request',
-        'django.contrib.auth.context_processors.auth',
-        'django.contrib.messages.context_processors.messages',
     ]},
 }]
 
 WSGI_APPLICATION = 'hrm_backend.wsgi.application'
 
-# ── SQLite pour Django auth/admin/sessions ────────────────────────────────────
-# simplejwt a besoin de django.contrib.auth → besoin d'une vraie DB SQL
+# ── MongoDB via MongoEngine ───────────────────────────────────────────────────
+MONGO_DB_NAME = config('MONGO_DB_NAME', default='hrm_db')
+MONGO_HOST    = config('MONGO_HOST',    default='localhost')
+MONGO_PORT    = config('MONGO_PORT',    default=27017, cast=int)
+MONGO_USER    = config('MONGO_USER',    default='')
+MONGO_PASS    = config('MONGO_PASS',    default='')
+
+if MONGO_USER and MONGO_PASS:
+    mongoengine.connect(
+        db=MONGO_DB_NAME,
+        host=MONGO_HOST,
+        port=MONGO_PORT,
+        username=MONGO_USER,
+        password=MONGO_PASS,
+        authentication_source='admin',
+    )
+else:
+    mongoengine.connect(
+        db=MONGO_DB_NAME,
+        host=MONGO_HOST,
+        port=MONGO_PORT,
+    )
+
+# Backend dummy — zéro SQL, uniquement MongoDB
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': 'django.db.backends.dummy',
     }
 }
 
-# ── MongoDB pour les données métier (employés, congés...) ────────────────────
-mongoengine.connect(
-    db=config('MONGO_DB_NAME', default='hrm_db'),
-    host=config('MONGO_HOST', default='localhost'),
-    port=config('MONGO_PORT', default=27017, cast=int),
-)
+# ── Désactiver toutes les migrations Django ───────────────────────────────────
+# Le backend dummy interdit toute opération SQL.
+# On désactive les migrations de django.contrib.auth et contenttypes
+# pour qu'elles ne tentent pas de créer des tables SQL.
+MIGRATION_MODULES = {
+    'auth':          'hrm_backend.disable_migrations',
+    'contenttypes':  'hrm_backend.disable_migrations',
+}
 
-# ── DRF ──────────────────────────────────────────────────────────────────────
+# ── DRF ───────────────────────────────────────────────────────────────────────
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
-        'rest_framework_simplejwt.authentication.JWTAuthentication',
+        'authentication.backends.MongoJWTAuthentication',
     ),
     'DEFAULT_PERMISSION_CLASSES': (
         'rest_framework.permissions.IsAuthenticated',
@@ -82,14 +98,19 @@ REST_FRAMEWORK = {
     ),
 }
 
-# ── JWT ───────────────────────────────────────────────────────────────────────
+# ── SimpleJWT ─────────────────────────────────────────────────────────────────
 SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME':  timedelta(hours=8),
     'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
-    'ROTATE_REFRESH_TOKENS':  True,
+    'ROTATE_REFRESH_TOKENS':  False,
     'ALGORITHM':              'HS256',
     'SIGNING_KEY':            SECRET_KEY,
     'AUTH_HEADER_TYPES':      ('Bearer',),
+    'USER_ID_FIELD':          'id',
+    'USER_ID_CLAIM':          'user_id',
+    'AUTH_TOKEN_CLASSES':     ('rest_framework_simplejwt.tokens.AccessToken',),
+    'TOKEN_TYPE_CLAIM':       'token_type',
+    'JTI_CLAIM':              'jti',
 }
 
 # ── CORS ──────────────────────────────────────────────────────────────────────

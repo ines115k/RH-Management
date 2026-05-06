@@ -6,15 +6,15 @@ import Dashboard from './pages/Dashboard'
 import EmployeeList from './pages/Employees/EmployeeList'
 import EmployeeDetail from './pages/Employees/EmployeeDetail'
 import UsersPage from './pages/UsersPage'
+import AttendancePage from './pages/Attendance/AttendancePage'
+import PayrollPage from './pages/Payroll/PayrollPage';
+import RecruitmentPage from './pages/Recruitment/RecruitmentPage';
 
 function Placeholder({ title, icon }) {
   return (
     <div style={{ padding: '32px 36px' }}>
       <h2 style={{ color: '#fff', fontSize: 22, fontWeight: 700 }}>{title}</h2>
-      <div style={{
-        background: '#13131f', border: '1px solid rgba(255,255,255,0.07)',
-        borderRadius: 12, padding: 60, textAlign: 'center', marginTop: 20,
-      }}>
+      <div style={{ background: '#13131f', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 12, padding: 60, textAlign: 'center', marginTop: 20 }}>
         <div style={{ fontSize: 50, marginBottom: 16 }}>{icon}</div>
         <p style={{ color: 'rgba(255,255,255,0.4)', margin: 0 }}>Module en cours de développement</p>
       </div>
@@ -27,20 +27,16 @@ export default function App() {
     <BrowserRouter>
       <AuthProvider>
         <Routes>
-          {/* Public */}
           <Route path="/login" element={<Login />} />
-
-          {/* Protégées */}
           <Route element={<AppLayout />}>
             <Route path="/dashboard"     element={<Dashboard />} />
             <Route path="/employees"     element={<EmployeeList />} />
             <Route path="/employees/:id" element={<EmployeeDetail />} />
+            <Route path="/attendance"    element={<AttendancePage />} />
+            <Route path="/payroll" element={<PayrollPage />} />
+            <Route path="/recruitment" element={<RecruitmentPage />} />
             <Route path="/users"         element={<UsersPage />} />
-            <Route path="/attendance"    element={<Placeholder title="Présences & Congés" icon="📅" />} />
-            <Route path="/payroll"       element={<Placeholder title="Gestion de la Paie" icon="💳" />} />
-            <Route path="/recruitment"   element={<Placeholder title="Recrutement" icon="🎯" />} />
           </Route>
-
           <Route path="/"  element={<Navigate to="/dashboard" replace />} />
           <Route path="*"  element={<Navigate to="/dashboard" replace />} />
         </Routes>
