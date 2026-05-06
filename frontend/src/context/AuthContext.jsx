@@ -3,10 +3,10 @@ import { authApi } from '../api/authApi'
 
 const AuthContext = createContext(null)
 
-// ── Clés localStorage — identiques à axiosInstance.js ────────────────────────
+// ── Clés localStorage — MODIFIÉES pour correspondre aux autres fichiers ────────
 export const TOKEN_KEYS = {
-  access:  'access',
-  refresh: 'refresh',
+  access:  'access_token',   // ← Changé
+  refresh: 'refresh_token',  // ← Changé
   user:    'hrm_user',
 }
 

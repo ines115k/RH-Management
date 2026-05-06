@@ -6,6 +6,10 @@ import Dashboard from './pages/Dashboard'
 import EmployeeList from './pages/Employees/EmployeeList'
 import EmployeeDetail from './pages/Employees/EmployeeDetail'
 import UsersPage from './pages/UsersPage'
+import AttendancePage from './pages/Attendance/AttendancePage'
+import LeaveRequestPage from './pages/Leave/LeaveRequestPage'
+import LeaveListPage from './pages/Leave/LeaveListPage'
+import LeaveCalendar from './pages/Leave/LeaveCalendar'  // ← Changement ici
 
 function Placeholder({ title, icon }) {
   return (
@@ -36,7 +40,14 @@ export default function App() {
             <Route path="/employees"     element={<EmployeeList />} />
             <Route path="/employees/:id" element={<EmployeeDetail />} />
             <Route path="/users"         element={<UsersPage />} />
-            <Route path="/attendance"    element={<Placeholder title="Présences & Congés" icon="📅" />} />
+            
+            {/* Nouvelles routes - Présences & Congés */}
+            <Route path="/attendance"        element={<AttendancePage />} />
+            <Route path="/leave/request"     element={<LeaveRequestPage />} />
+            <Route path="/leave/list"        element={<LeaveListPage />} />
+            <Route path="/leave/calendar"    element={<LeaveCalendar />} />  {/* ← Changement ici */}
+            
+            {/* Placeholders pour les autres modules */}
             <Route path="/payroll"       element={<Placeholder title="Gestion de la Paie" icon="💳" />} />
             <Route path="/recruitment"   element={<Placeholder title="Recrutement" icon="🎯" />} />
           </Route>

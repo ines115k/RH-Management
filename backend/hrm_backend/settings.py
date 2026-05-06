@@ -24,6 +24,8 @@ INSTALLED_APPS = [
     # Apps du projet
     'authentication',
     'employees',
+    'attendance',          # ← AJOUTER
+    'leave_management', 
 ]
 
 MIDDLEWARE = [
@@ -54,7 +56,6 @@ TEMPLATES = [{
 WSGI_APPLICATION = 'hrm_backend.wsgi.application'
 
 # ── SQLite pour Django auth/admin/sessions ────────────────────────────────────
-# simplejwt a besoin de django.contrib.auth → besoin d'une vraie DB SQL
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
@@ -69,10 +70,10 @@ mongoengine.connect(
     port=config('MONGO_PORT', default=27017, cast=int),
 )
 
-# ── DRF ──────────────────────────────────────────────────────────────────────
+# ── DRF avec authentification personnalisée ───────────────────────────────────
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
-        'rest_framework_simplejwt.authentication.JWTAuthentication',
+        'authentication.backends.MongoJWTAuthentication',  # ← Changement clé
     ),
     'DEFAULT_PERMISSION_CLASSES': (
         'rest_framework.permissions.IsAuthenticated',

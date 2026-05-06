@@ -28,22 +28,26 @@ class MongoJWTAuthentication(BaseAuthentication):
         except (InvalidToken, TokenError) as exc:
             raise AuthenticationFailed(f"Token invalide : {exc}")
 
-        user_id = validated_token.get('user_id')
-        if not user_id:
-            raise AuthenticationFailed("Token invalide : user_id manquant.")
-
-        # user_id est une str (ex: "6613a2f4e3b1c2d3e4f50001")
-        # On convertit en ObjectId pour MongoEngine
-        try:
-            oid = ObjectId(str(user_id))
-            user = User.objects.get(pk=oid)
-        except Exception:
-            raise AuthenticationFailed("Utilisateur introuvable ou token expiré.")
-
+        user = self.get_user(validated_token)
+        
         if not user.is_active:
             raise AuthenticationFailed("Ce compte est désactivé.")
 
         return (user, validated_token)
+
+    def get_user(self, validated_token):
+        """Récupère l'utilisateur à partir du token JWT validé."""
+        try:
+            user_id = validated_token.get('user_id')
+            if not user_id:
+                raise AuthenticationFailed('Token invalide : user_id manquant.')
+            
+            # Conversion explicite en ObjectId pour MongoDB
+            user = User.objects.get(pk=ObjectId(user_id))
+            return user
+        except Exception as e:
+            print(f"Erreur get_user: {e}")
+            raise AuthenticationFailed('Utilisateur introuvable ou token expiré.')
 
     def authenticate_header(self, request):
         return 'Bearer realm="api"'
