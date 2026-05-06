@@ -24,4 +24,10 @@ export const attendanceAPI = {
     const response = await api.get(`/attendance/history/?limit=${limit}`);
     return response.data;
   },
+
+  // Récupérer les absences pour un mois donné
+  getAbsences: async (month, year) => {
+    const response = await api.get(`/attendance/absences/?month=${month}&year=${year}`);
+    return response.data;
+  },
 };

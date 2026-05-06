@@ -108,3 +108,72 @@ class AttendanceHistoryView(APIView):
     def get(self, request):
         qs = Attendance.objects(employee_id=str(request.user.id)).order_by('-date').limit(30)
         return Response(AttendanceSerializer(qs, many=True).data)
+class AttendanceAbsencesView(APIView):
+    """Récupérer les absences d'un employé pour un mois donné"""
+    authentication_classes = [MongoJWTAuthentication]
+    permission_classes = [IsAuthenticated]
+    
+    def get(self, request):
+        month = int(request.query_params.get('month'))
+        year = int(request.query_params.get('year'))
+        employee_id = str(request.user.id)
+        
+        # Date de début et fin du mois
+        start_date = datetime(year, month, 1)
+        if month == 12:
+            end_date = datetime(year + 1, 1, 1)
+        else:
+            end_date = datetime(year, month + 1, 1)
+        
+        # Récupérer les absences
+        absences = Attendance.objects(
+            employee_id=employee_id,
+            date__gte=start_date,
+            date__lt=end_date,
+            status='absent'
+        )
+        
+        result = []
+        for att in absences:
+            result.append({
+                'date': att.date.strftime('%Y-%m-%d'),
+                'reason': 'Absence',
+                'hours': 8
+            })
+        
+        return Response(result)
+class AttendanceAbsencesView(APIView):
+    """Récupérer les absences d'un employé pour un mois donné"""
+    authentication_classes = [MongoJWTAuthentication]
+    permission_classes = [IsAuthenticated]
+    
+    def get(self, request):
+        month = int(request.query_params.get('month'))
+        year = int(request.query_params.get('year'))
+        employee_id = str(request.user.id)
+        
+        # Date de début et fin du mois
+        start_date = datetime(year, month, 1)
+        if month == 12:
+            end_date = datetime(year + 1, 1, 1)
+        else:
+            end_date = datetime(year, month + 1, 1)
+        
+        # Récupérer les absences (status='absent')
+        absences = Attendance.objects(
+            employee_id=employee_id,
+            date__gte=start_date,
+            date__lt=end_date,
+            status='absent'
+        )
+        
+        result = []
+        for att in absences:
+            result.append({
+                'date': att.date.strftime('%Y-%m-%d'),
+                'reason': 'Absence',
+                'hours': 8
+            })
+        
+        return Response(result)        
+    

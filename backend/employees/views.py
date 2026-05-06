@@ -11,7 +11,7 @@ from .serializers import (
 )
 from .permissions import IsAdminOrManager, IsAdmin, IsOwnerOrAdminOrManager
 from rest_framework.permissions import IsAuthenticated
-
+from authentication.backends import MongoJWTAuthentication
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 def get_employee_or_404(pk):
@@ -285,3 +285,24 @@ class EmployeeHistoryView(APIView):
             'current_department': emp.department,
             'history': PositionHistorySerializer(history, many=True).data,
         })
+class MyEmployeeInfoView(APIView):
+    """Récupérer les infos de l'employé connecté"""
+    authentication_classes = [MongoJWTAuthentication]
+    permission_classes = [IsAuthenticated]
+    
+    def get(self, request):
+        try:
+            emp = Employee.objects.get(user_id=str(request.user.id))
+            return Response({
+                'first_name': emp.first_name,
+                'last_name': emp.last_name,
+                'position': emp.position,
+                'base_salary': emp.base_salary,
+                'department': emp.department,
+                'employee_id': emp.employee_id,
+            })
+        except:
+            return Response(
+                {'detail': 'Employé non trouvé'},
+                status=status.HTTP_404_NOT_FOUND
+            )

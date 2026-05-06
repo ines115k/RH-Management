@@ -1,221 +1,82 @@
-import React, { useState } from 'react';  // ← Ajoutez cette ligne
 import { NavLink } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
+import { Avatar } from '../ui/index.jsx'
 
-const Sidebar = () => {
-  const { user, logout } = useAuth()
+const NAV = [
+  { to: '/dashboard',   icon: '⊞', label: 'Dashboard',    adminOnly: false },
+  { to: '/employees',   icon: '👥', label: 'Employés',     adminOnly: false },
+  { to: '/attendance',  icon: '📅', label: 'Présences',    adminOnly: false },
+  { to: '/payroll',     icon: '💳', label: 'Paie',         adminOnly: false },
+  { to: '/recruitment', icon: '🎯', label: 'Recrutement',  adminOnly: false },
+  { to: '/users',       icon: '🔑', label: 'Utilisateurs', adminOnly: true  },
+]
 
-  const navItems = [
-    { path: '/dashboard', label: '📊 Tableau de bord', icon: '📊' },
-    { path: '/employees', label: '👥 Employés', icon: '👥' },
-    { 
-      label: '🕐 Présences & Congés', 
-      icon: '🕐',
-      isSubmenu: true,
-      subItems: [
-        { path: '/attendance', label: '📅 Pointage', icon: '⏰' },
-        { path: '/leave/request', label: '🏖️ Demander congé', icon: '✏️' },
-        { path: '/leave/list', label: '📋 Mes congés', icon: '📋' },
-        { path: '/leave/calendar', label: '📆 Calendrier', icon: '📆' },
-      ]
-    },
-    { path: '/payroll', label: '💰 Paie', icon: '💰' },
-    { path: '/recruitment', label: '🎯 Recrutement', icon: '🎯' },
-  ]
-
-  if (user?.role === 'admin') {
-    navItems.push({ path: '/users', label: '👤 Utilisateurs', icon: '👤' })
-  }
+export default function Sidebar() {
+  const { user, logout, isAdmin } = useAuth()
 
   return (
     <aside style={{
-      width: '280px',
-      background: '#0a0a12',
+      width: 230, minHeight: '100vh',
+      background: '#0a0a16',
       borderRight: '1px solid rgba(255,255,255,0.06)',
-      display: 'flex',
-      flexDirection: 'column',
-      position: 'sticky',
-      top: 0,
-      height: '100vh',
-      overflowY: 'auto'
+      display: 'flex', flexDirection: 'column',
+      padding: '24px 0', flexShrink: 0,
     }}>
       {/* Logo */}
       <div style={{
-        padding: '24px 20px',
+        display: 'flex', alignItems: 'center', gap: 10,
+        padding: '0 20px 28px',
         borderBottom: '1px solid rgba(255,255,255,0.06)',
-        marginBottom: '20px'
+        marginBottom: 12,
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <div style={{ fontSize: '32px' }}>🏢</div>
-          <div>
-            <div style={{ fontWeight: 700, fontSize: '18px', color: '#fff' }}>RH Management</div>
-            <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.4)' }}>Portail RH</div>
-          </div>
-        </div>
+        <div style={{ width: 10, height: 10, borderRadius: '50%', background: 'linear-gradient(135deg,#a78bfa,#818cf8)' }} />
+        <span style={{ color: '#fff', fontWeight: 700, fontSize: 16, letterSpacing: 0.5 }}>Optimize HRM</span>
       </div>
 
       {/* Navigation */}
-      <nav style={{ flex: 1, padding: '0 16px' }}>
-        {navItems.map((item, index) => (
-          item.isSubmenu ? (
-            <SubmenuItem key={index} item={item} />
-          ) : (
-            <NavLink
-              key={item.path}
-              to={item.path}
-              style={({ isActive }) => ({
-                display: 'flex',
-                alignItems: 'center',
-                gap: '12px',
-                padding: '10px 16px',
-                marginBottom: '4px',
-                borderRadius: '10px',
-                background: isActive ? 'rgba(59,130,246,0.15)' : 'transparent',
-                color: isActive ? '#3b82f6' : 'rgba(255,255,255,0.7)',
-                textDecoration: 'none',
-                transition: 'all 0.2s',
-                fontSize: '14px',
-                fontWeight: 500
-              })}
-            >
-              <span style={{ fontSize: '18px' }}>{item.icon}</span>
-              <span>{item.label}</span>
-            </NavLink>
-          )
+      <nav style={{ flex: 1 }}>
+        {NAV.filter((n) => !n.adminOnly || isAdmin).map((n) => (
+          <NavLink
+            key={n.to}
+            to={n.to}
+            style={({ isActive }) => ({
+              display: 'flex', alignItems: 'center', gap: 10,
+              padding: '12px 20px', textDecoration: 'none',
+              color: isActive ? '#a78bfa' : 'rgba(255,255,255,0.5)',
+              background: isActive ? 'rgba(120,60,200,0.15)' : 'transparent',
+              borderRight: isActive ? '2px solid #a78bfa' : '2px solid transparent',
+              fontSize: 13, fontWeight: isActive ? 600 : 400,
+              transition: 'all 0.15s',
+            })}
+          >
+            <span style={{ fontSize: 16 }}>{n.icon}</span>
+            {n.label}
+          </NavLink>
         ))}
       </nav>
 
-      {/* Footer avec déconnexion */}
+      {/* User info + Logout */}
       <div style={{
-        padding: '20px',
+        display: 'flex', alignItems: 'center', gap: 10,
+        padding: '16px 20px',
         borderTop: '1px solid rgba(255,255,255,0.06)',
-        marginTop: 'auto'
+        marginTop: 12,
       }}>
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '12px',
-          padding: '10px 12px',
-          background: 'rgba(255,255,255,0.03)',
-          borderRadius: '12px',
-          marginBottom: '12px'
-        }}>
-          <div style={{
-            width: '36px',
-            height: '36px',
-            background: 'rgba(59,130,246,0.2)',
-            borderRadius: '50%',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: '16px'
-          }}>
-            👤
+        <Avatar name={`${user?.first_name || ''} ${user?.last_name || ''}`} size={36} />
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ color: '#fff', fontSize: 13, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {user?.first_name || user?.email}
           </div>
-          <div style={{ flex: 1 }}>
-            <div style={{ fontSize: '13px', fontWeight: 600, color: '#fff' }}>
-              {user?.first_name || user?.email?.split('@')[0] || 'Utilisateur'}
-            </div>
-            <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.4)' }}>
-              {user?.role === 'admin' ? 'Administrateur' : user?.role === 'manager' ? 'Manager' : 'Employé'}
-            </div>
+          <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: 11, textTransform: 'uppercase' }}>
+            {user?.role}
           </div>
         </div>
-        
         <button
           onClick={logout}
-          style={{
-            width: '100%',
-            padding: '10px',
-            background: 'rgba(255,255,255,0.05)',
-            border: '1px solid rgba(255,255,255,0.08)',
-            borderRadius: '10px',
-            color: 'rgba(255,255,255,0.7)',
-            cursor: 'pointer',
-            fontSize: '13px',
-            fontWeight: 500,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '8px',
-            transition: 'all 0.2s'
-          }}
-          onMouseEnter={(e) => {
-            e.target.style.background = 'rgba(239,68,68,0.15)'
-            e.target.style.color = '#ef4444'
-          }}
-          onMouseLeave={(e) => {
-            e.target.style.background = 'rgba(255,255,255,0.05)'
-            e.target.style.color = 'rgba(255,255,255,0.7)'
-          }}
-        >
-          🚪 Déconnexion
-        </button>
+          title="Déconnexion"
+          style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.3)', fontSize: 18, cursor: 'pointer', flexShrink: 0 }}
+        >⇥</button>
       </div>
     </aside>
   )
 }
-
-// Composant pour les sous-menus
-const SubmenuItem = ({ item }) => {
-  const [isOpen, setIsOpen] = useState(false)
-
-  return (
-    <div style={{ marginBottom: '4px' }}>
-      <div
-        onClick={() => setIsOpen(!isOpen)}
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          padding: '10px 16px',
-          borderRadius: '10px',
-          cursor: 'pointer',
-          color: 'rgba(255,255,255,0.7)',
-          transition: 'all 0.2s',
-          fontSize: '14px',
-          fontWeight: 500
-        }}
-        onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}
-        onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <span style={{ fontSize: '18px' }}>{item.icon}</span>
-          <span>{item.label}</span>
-        </div>
-        <span style={{ fontSize: '12px', transform: isOpen ? 'rotate(90deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }}>
-          ▶
-        </span>
-      </div>
-      
-      {isOpen && (
-        <div style={{ marginLeft: '28px', marginTop: '4px' }}>
-          {item.subItems.map((subItem) => (
-            <NavLink
-              key={subItem.path}
-              to={subItem.path}
-              style={({ isActive }) => ({
-                display: 'flex',
-                alignItems: 'center',
-                gap: '12px',
-                padding: '8px 16px',
-                marginBottom: '2px',
-                borderRadius: '8px',
-                background: isActive ? 'rgba(59,130,246,0.15)' : 'transparent',
-                color: isActive ? '#3b82f6' : 'rgba(255,255,255,0.6)',
-                textDecoration: 'none',
-                fontSize: '13px',
-                transition: 'all 0.2s'
-              })}
-            >
-              <span style={{ fontSize: '14px' }}>{subItem.icon}</span>
-              <span>{subItem.label}</span>
-            </NavLink>
-          ))}
-        </div>
-      )}
-    </div>
-  )
-}
-
-export default Sidebar

@@ -1,24 +1,21 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react'
-import { authApi } from '../api/authApi'
+import { authService } from '../services/authService';
 
 const AuthContext = createContext(null)
 
-// ── Clés localStorage — MODIFIÉES pour correspondre aux autres fichiers ────────
 export const TOKEN_KEYS = {
-  access:  'access_token',   // ← Changé
-  refresh: 'refresh_token',  // ← Changé
-  user:    'hrm_user',
+  access: 'access_token',
+  refresh: 'refresh_token',
+  user: 'hrm_user',
 }
 
-// ── Provider ──────────────────────────────────────────────────────────────────
 export function AuthProvider({ children }) {
-  const [user, setUser]       = useState(null)
+  const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    const access = localStorage.getItem(TOKEN_KEYS.access)
     const stored = localStorage.getItem(TOKEN_KEYS.user)
-    if (access && stored) {
+    if (stored) {
       try { setUser(JSON.parse(stored)) }
       catch { localStorage.clear() }
     }
@@ -26,22 +23,14 @@ export function AuthProvider({ children }) {
   }, [])
 
   const login = useCallback(async (email, password) => {
-    const { data } = await authApi.login(email, password)
-    localStorage.setItem(TOKEN_KEYS.access,  data.tokens.access)
-    localStorage.setItem(TOKEN_KEYS.refresh, data.tokens.refresh)
-    localStorage.setItem(TOKEN_KEYS.user,    JSON.stringify(data.user))
-    setUser(data.user)
-    return data.user
+    const response = await authService.login(email, password)
+    const userData = response.data.user
+    setUser(userData)
+    return userData
   }, [])
 
   const logout = useCallback(async () => {
-    try {
-      const refresh = localStorage.getItem(TOKEN_KEYS.refresh)
-      if (refresh) await authApi.logout(refresh)
-    } catch { /* token expiré */ }
-    localStorage.removeItem(TOKEN_KEYS.access)
-    localStorage.removeItem(TOKEN_KEYS.refresh)
-    localStorage.removeItem(TOKEN_KEYS.user)
+    await authService.logout()
     setUser(null)
   }, [])
 
@@ -53,7 +42,7 @@ export function AuthProvider({ children }) {
     })
   }, [])
 
-  const isAdmin   = user?.role === 'admin'
+  const isAdmin = user?.role === 'admin'
   const isManager = user?.role === 'manager'
   const canManage = isAdmin || isManager
 
@@ -64,7 +53,6 @@ export function AuthProvider({ children }) {
   )
 }
 
-// ── Hook séparé du Provider pour compatibilité HMR Vite ──────────────────────
 export function useAuth() {
   const ctx = useContext(AuthContext)
   if (!ctx) throw new Error('useAuth doit être dans <AuthProvider>')

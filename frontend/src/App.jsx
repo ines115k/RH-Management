@@ -3,13 +3,17 @@ import { AuthProvider } from './context/AuthContext'
 import AppLayout from './components/Layout/AppLayout'
 import Login from './pages/Login'
 import Dashboard from './pages/Dashboard'
+import DashboardEmploye from './pages/DashboardEmploye'
 import EmployeeList from './pages/Employees/EmployeeList'
 import EmployeeDetail from './pages/Employees/EmployeeDetail'
 import UsersPage from './pages/UsersPage'
 import AttendancePage from './pages/Attendance/AttendancePage'
 import LeaveRequestPage from './pages/Leave/LeaveRequestPage'
 import LeaveListPage from './pages/Leave/LeaveListPage'
-import LeaveCalendar from './pages/Leave/LeaveCalendar'  // ← Changement ici
+import LeaveCalendar from './pages/Leave/LeaveCalendar'
+import PayrollEmploye from './pages/Payroll/PayrollEmploye'
+import RecruitmentEmploye from './pages/Recruitment/RecruitmentEmploye'
+import { useAuth } from './context/AuthContext'
 
 function Placeholder({ title, icon }) {
   return (
@@ -26,6 +30,17 @@ function Placeholder({ title, icon }) {
   )
 }
 
+// Composant pour choisir le dashboard selon le rôle
+function DashboardRouter() {
+  const { user } = useAuth()
+  
+  if (user?.role === 'admin' || user?.role === 'manager') {
+    return <Dashboard />
+  }
+  
+  return <DashboardEmploye />
+}
+
 export default function App() {
   return (
     <BrowserRouter>
@@ -34,26 +49,32 @@ export default function App() {
           {/* Public */}
           <Route path="/login" element={<Login />} />
 
-          {/* Protégées */}
+          {/* Protégées - Avec AppLayout (sidebar) */}
           <Route element={<AppLayout />}>
-            <Route path="/dashboard"     element={<Dashboard />} />
-            <Route path="/employees"     element={<EmployeeList />} />
+            <Route path="/dashboard" element={<DashboardRouter />} />
+            
+            <Route path="/employees" element={<EmployeeList />} />
             <Route path="/employees/:id" element={<EmployeeDetail />} />
-            <Route path="/users"         element={<UsersPage />} />
+            <Route path="/users" element={<UsersPage />} />
             
-            {/* Nouvelles routes - Présences & Congés */}
-            <Route path="/attendance"        element={<AttendancePage />} />
-            <Route path="/leave/request"     element={<LeaveRequestPage />} />
-            <Route path="/leave/list"        element={<LeaveListPage />} />
-            <Route path="/leave/calendar"    element={<LeaveCalendar />} />  {/* ← Changement ici */}
+            {/* Présences & Congés */}
+            <Route path="/attendance" element={<AttendancePage />} />
+            <Route path="/leave/request" element={<LeaveRequestPage />} />
+            <Route path="/leave/list" element={<LeaveListPage />} />
+            <Route path="/leave/calendar" element={<LeaveCalendar />} />
             
-            {/* Placeholders pour les autres modules */}
-            <Route path="/payroll"       element={<Placeholder title="Gestion de la Paie" icon="💳" />} />
-            <Route path="/recruitment"   element={<Placeholder title="Recrutement" icon="🎯" />} />
+            {/* Paie & Recrutement pour employé */}
+            <Route path="/payroll/employee" element={<PayrollEmploye />} />
+            <Route path="/recruitment/employee" element={<RecruitmentEmploye />} />
+            
+            {/* Placeholders */}
+            <Route path="/payroll" element={<Placeholder title="Gestion de la Paie" icon="💳" />} />
+            <Route path="/recruitment" element={<Placeholder title="Recrutement" icon="🎯" />} />
           </Route>
 
-          <Route path="/"  element={<Navigate to="/dashboard" replace />} />
-          <Route path="*"  element={<Navigate to="/dashboard" replace />} />
+          {/* Redirections */}
+          <Route path="/" element={<Navigate to="/dashboard" replace />} />
+          <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>
       </AuthProvider>
     </BrowserRouter>

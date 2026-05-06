@@ -25,7 +25,9 @@ INSTALLED_APPS = [
     'authentication',
     'employees',
     'attendance',          # ← AJOUTER
-    'leave_management', 
+    'leave_management',
+    'payroll',
+    'recruitment' 
 ]
 
 MIDDLEWARE = [
