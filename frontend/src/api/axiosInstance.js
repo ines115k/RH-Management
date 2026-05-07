@@ -6,7 +6,7 @@ const api = axios.create({
 })
 
 // ── Clés localStorage — DOIVENT correspondre à TOKEN_KEYS dans AuthContext ────
-const KEYS = { access: 'access', refresh: 'refresh' }
+const KEYS = { access: 'access_token', refresh: 'refresh_token' }
 
 // ── Injecter le token sur chaque requête ──────────────────────────────────────
 api.interceptors.request.use((config) => {

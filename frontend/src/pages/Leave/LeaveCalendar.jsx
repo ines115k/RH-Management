@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { leaveAPI } from '../../services/leaveAPI';
+import { leaveAPI } from '../../api/leaveAPI';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
 import ErrorMessage from '../../components/common/ErrorMessage';
 
@@ -28,70 +28,51 @@ const LeaveCalendar = () => {
     }
   };
 
-  // Obtenir les jours du mois
   const getDaysInMonth = (date) => {
     const year = date.getFullYear();
     const month = date.getMonth();
     const firstDay = new Date(year, month, 1);
     const daysInMonth = new Date(year, month + 1, 0).getDate();
-    const startDayOfWeek = firstDay.getDay(); // 0 = dimanche
-    
+    const startDayOfWeek = firstDay.getDay();
     const days = [];
-    
-    // Ajuster pour que la semaine commence lundi
     const startOffset = startDayOfWeek === 0 ? 6 : startDayOfWeek - 1;
-    
-    // Jours du mois précédent
     const prevMonthLastDay = new Date(year, month, 0).getDate();
+
     for (let i = startOffset - 1; i >= 0; i--) {
-      days.push({
-        date: new Date(year, month - 1, prevMonthLastDay - i),
-        isCurrentMonth: false,
-        leaves: []
-      });
+      days.push({ date: new Date(year, month - 1, prevMonthLastDay - i), isCurrentMonth: false, leaves: [] });
     }
-    
-    // Jours du mois courant
     for (let i = 1; i <= daysInMonth; i++) {
-      days.push({
-        date: new Date(year, month, i),
-        isCurrentMonth: true,
-        leaves: []
-      });
+      days.push({ date: new Date(year, month, i), isCurrentMonth: true, leaves: [] });
     }
-    
-    // Jours du mois suivant (pour compléter la grille)
     const remainingDays = 42 - days.length;
     for (let i = 1; i <= remainingDays; i++) {
-      days.push({
-        date: new Date(year, month + 1, i),
-        isCurrentMonth: false,
-        leaves: []
-      });
+      days.push({ date: new Date(year, month + 1, i), isCurrentMonth: false, leaves: [] });
     }
-    
     return days;
   };
 
-  // Assigner les congés aux jours
   const getDaysWithLeaves = () => {
     const days = getDaysInMonth(currentDate);
-    
+
     days.forEach(day => {
-      const dateStr = day.date.toISOString().split('T')[0];
-      
+      // Utiliser la date locale pour éviter les décalages UTC
+      const y = day.date.getFullYear();
+      const m = String(day.date.getMonth() + 1).padStart(2, '0');
+      const d = String(day.date.getDate()).padStart(2, '0');
+      const dateStr = `${y}-${m}-${d}`;
+
       requests.forEach(leave => {
         if (leave.status === 'approved') {
-          const startDate = new Date(leave.start_date).toISOString().split('T')[0];
-          const endDate = new Date(leave.end_date).toISOString().split('T')[0];
-          
+          // start_date / end_date sont des DateField Django → format YYYY-MM-DD
+          const startDate = leave.start_date?.split('T')[0] ?? leave.start_date;
+          const endDate   = leave.end_date?.split('T')[0]   ?? leave.end_date;
           if (dateStr >= startDate && dateStr <= endDate) {
             day.leaves.push(leave);
           }
         }
       });
     });
-    
+
     return days;
   };
 
@@ -99,37 +80,38 @@ const LeaveCalendar = () => {
     setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + delta, 1));
   };
 
-  const getLeaveTypeLabel = (type) => {
+  const getLeaveTypeLabel = (leaveType) => {
     const types = {
-      annual: 'Congé annuel',
-      sick: 'Congé maladie',
-      unpaid: 'Congé sans solde',
+      annual:      'Congé annuel',
+      sick:        'Congé maladie',
+      unpaid:      'Congé sans solde',
       exceptional: 'Congé exceptionnel',
-      maternity: 'Congé maternité'
+      maternity:   'Congé maternité',
+      other:       'Autre',
     };
-    return types[type] || type;
+    return types[leaveType] || leaveType;
   };
 
-  const getLeaveTypeColor = (type) => {
+  const getLeaveTypeColor = (leaveType) => {
     const colors = {
-      annual: '#3b82f6',
-      sick: '#ef4444',
-      unpaid: '#f59e0b',
+      annual:      '#3b82f6',
+      sick:        '#ef4444',
+      unpaid:      '#f59e0b',
       exceptional: '#8b5cf6',
-      maternity: '#ec489a'
+      maternity:   '#ec4899',
+      other:       '#6b7280',
     };
-    return colors[type] || '#6b7280';
+    return colors[leaveType] || '#6b7280';
   };
 
   const monthNames = [
     'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin',
     'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'
   ];
-
   const weekDays = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'];
 
   if (loading) return <LoadingSpinner />;
-  if (error) return <ErrorMessage message={error} />;
+  if (error)   return <ErrorMessage message={error} />;
 
   const daysWithLeaves = getDaysWithLeaves();
 
@@ -144,130 +126,57 @@ const LeaveCalendar = () => {
         </p>
       </div>
 
-      {/* En-tête du calendrier */}
-      <div style={{
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: '24px'
-      }}>
-        <button
-          onClick={() => changeMonth(-1)}
-          style={{
-            background: 'rgba(255,255,255,0.05)',
-            border: '1px solid rgba(255,255,255,0.1)',
-            borderRadius: '8px',
-            padding: '8px 16px',
-            color: '#fff',
-            cursor: 'pointer',
-            fontSize: '16px'
-          }}
-        >
-          ◀ Mois précédent
-        </button>
-        
+      {/* Navigation mois */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+        <button onClick={() => changeMonth(-1)} style={btnStyle}>◀ Mois précédent</button>
         <h2 style={{ color: '#fff', fontSize: '22px', fontWeight: 600 }}>
           {monthNames[currentDate.getMonth()]} {currentDate.getFullYear()}
         </h2>
-        
-        <button
-          onClick={() => changeMonth(1)}
-          style={{
-            background: 'rgba(255,255,255,0.05)',
-            border: '1px solid rgba(255,255,255,0.1)',
-            borderRadius: '8px',
-            padding: '8px 16px',
-            color: '#fff',
-            cursor: 'pointer',
-            fontSize: '16px'
-          }}
-        >
-          Mois suivant ▶
-        </button>
+        <button onClick={() => changeMonth(1)} style={btnStyle}>Mois suivant ▶</button>
       </div>
 
       {/* Légende */}
-      <div style={{
-        display: 'flex',
-        gap: '24px',
-        marginBottom: '24px',
-        padding: '12px 16px',
-        background: 'rgba(255,255,255,0.03)',
-        borderRadius: '12px',
-        flexWrap: 'wrap'
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <div style={{ width: '12px', height: '12px', borderRadius: '3px', background: '#3b82f6' }}></div>
-          <span style={{ color: 'rgba(255,255,255,0.7)', fontSize: '13px' }}>Congé annuel</span>
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <div style={{ width: '12px', height: '12px', borderRadius: '3px', background: '#ef4444' }}></div>
-          <span style={{ color: 'rgba(255,255,255,0.7)', fontSize: '13px' }}>Congé maladie</span>
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <div style={{ width: '12px', height: '12px', borderRadius: '3px', background: '#f59e0b' }}></div>
-          <span style={{ color: 'rgba(255,255,255,0.7)', fontSize: '13px' }}>Sans solde</span>
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <div style={{ width: '12px', height: '12px', borderRadius: '3px', background: '#8b5cf6' }}></div>
-          <span style={{ color: 'rgba(255,255,255,0.7)', fontSize: '13px' }}>Congé exceptionnel</span>
-        </div>
+      <div style={{ display: 'flex', gap: '24px', marginBottom: '24px', padding: '12px 16px', background: 'rgba(255,255,255,0.03)', borderRadius: '12px', flexWrap: 'wrap' }}>
+        {[
+          { type: 'annual',      label: 'Congé annuel' },
+          { type: 'sick',        label: 'Congé maladie' },
+          { type: 'unpaid',      label: 'Sans solde' },
+          { type: 'exceptional', label: 'Exceptionnel' },
+          { type: 'maternity',   label: 'Maternité' },
+        ].map(({ type, label }) => (
+          <div key={type} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <div style={{ width: '12px', height: '12px', borderRadius: '3px', background: getLeaveTypeColor(type) }}></div>
+            <span style={{ color: 'rgba(255,255,255,0.7)', fontSize: '13px' }}>{label}</span>
+          </div>
+        ))}
       </div>
 
-      {/* Grille du calendrier */}
-      <div style={{
-        background: '#13131f',
-        borderRadius: '16px',
-        border: '1px solid rgba(255,255,255,0.07)',
-        overflow: 'hidden'
-      }}>
-        {/* Jours de la semaine */}
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(7, 1fr)',
-          background: 'rgba(0,0,0,0.3)',
-          borderBottom: '1px solid rgba(255,255,255,0.07)'
-        }}>
+      {/* Grille calendrier */}
+      <div style={{ background: '#13131f', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.07)', overflow: 'hidden' }}>
+        {/* En-têtes jours */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', background: 'rgba(0,0,0,0.3)', borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
           {weekDays.map(day => (
-            <div key={day} style={{
-              padding: '16px 12px',
-              textAlign: 'center',
-              fontWeight: 600,
-              color: 'rgba(255,255,255,0.6)',
-              fontSize: '14px'
-            }}>
+            <div key={day} style={{ padding: '16px 12px', textAlign: 'center', fontWeight: 600, color: 'rgba(255,255,255,0.6)', fontSize: '14px' }}>
               {day}
             </div>
           ))}
         </div>
 
-        {/* Jours du mois */}
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(7, 1fr)'
-        }}>
+        {/* Cellules jours */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)' }}>
           {daysWithLeaves.map((day, index) => (
-            <div
-              key={index}
-              style={{
-                minHeight: '120px',
-                padding: '8px',
-                borderRight: index % 7 !== 6 ? '1px solid rgba(255,255,255,0.05)' : 'none',
-                borderBottom: '1px solid rgba(255,255,255,0.05)',
-                background: day.isCurrentMonth ? 'transparent' : 'rgba(0,0,0,0.2)',
-                opacity: day.isCurrentMonth ? 1 : 0.5,
-                position: 'relative'
-              }}
-            >
-              <div style={{
-                fontSize: '14px',
-                fontWeight: 600,
-                color: day.isCurrentMonth ? '#fff' : 'rgba(255,255,255,0.3)',
-                marginBottom: '8px'
-              }}>
+            <div key={index} style={{
+              minHeight: '120px',
+              padding: '8px',
+              borderRight: index % 7 !== 6 ? '1px solid rgba(255,255,255,0.05)' : 'none',
+              borderBottom: '1px solid rgba(255,255,255,0.05)',
+              background: day.isCurrentMonth ? 'transparent' : 'rgba(0,0,0,0.2)',
+              opacity: day.isCurrentMonth ? 1 : 0.5,
+            }}>
+              <div style={{ fontSize: '14px', fontWeight: 600, color: day.isCurrentMonth ? '#fff' : 'rgba(255,255,255,0.3)', marginBottom: '8px' }}>
                 {day.date.getDate()}
               </div>
-              
+
               {day.leaves.length > 0 && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                   {day.leaves.slice(0, 3).map((leave, idx) => (
@@ -277,16 +186,16 @@ const LeaveCalendar = () => {
                       style={{
                         fontSize: '11px',
                         padding: '4px 6px',
-                        background: `${getLeaveTypeColor(leave.type)}20`,
-                        borderLeft: `3px solid ${getLeaveTypeColor(leave.type)}`,
+                        background: `${getLeaveTypeColor(leave.leave_type)}25`,
+                        borderLeft: `3px solid ${getLeaveTypeColor(leave.leave_type)}`,
                         borderRadius: '4px',
                         cursor: 'pointer',
                         overflow: 'hidden',
                         textOverflow: 'ellipsis',
                         whiteSpace: 'nowrap',
-                        color: 'rgba(255,255,255,0.8)'
+                        color: 'rgba(255,255,255,0.85)',
                       }}
-                      title={leave.reason}
+                      title={`${getLeaveTypeLabel(leave.leave_type)} — ${leave.employee_name || leave.employee_id}`}
                     >
                       👤 {leave.employee_name || leave.employee_id?.slice(-6) || 'Employé'}
                     </div>
@@ -303,72 +212,27 @@ const LeaveCalendar = () => {
         </div>
       </div>
 
-      {/* Modal des détails du congé */}
+      {/* Modal détails */}
       {selectedLeave && (
-        <div
-          onClick={() => setSelectedLeave(null)}
-          style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            background: 'rgba(0,0,0,0.8)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 1000
-          }}
-        >
-          <div
-            onClick={(e) => e.stopPropagation()}
-            style={{
-              background: '#1a1a2e',
-              borderRadius: '20px',
-              padding: '24px',
-              maxWidth: '400px',
-              width: '90%',
-              border: '1px solid rgba(255,255,255,0.1)'
-            }}
-          >
+        <div onClick={() => setSelectedLeave(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+          <div onClick={e => e.stopPropagation()} style={{ background: '#1a1a2e', borderRadius: '20px', padding: '24px', maxWidth: '400px', width: '90%', border: '1px solid rgba(255,255,255,0.1)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
               <h3 style={{ color: '#fff', fontSize: '20px', fontWeight: 700 }}>Détails du congé</h3>
-              <button
-                onClick={() => setSelectedLeave(null)}
-                style={{
-                  background: 'rgba(255,255,255,0.05)',
-                  border: 'none',
-                  fontSize: '20px',
-                  cursor: 'pointer',
-                  color: '#fff',
-                  width: '32px',
-                  height: '32px',
-                  borderRadius: '8px'
-                }}
-              >
-                ✕
-              </button>
+              <button onClick={() => setSelectedLeave(null)} style={{ background: 'rgba(255,255,255,0.05)', border: 'none', fontSize: '20px', cursor: 'pointer', color: '#fff', width: '32px', height: '32px', borderRadius: '8px' }}>✕</button>
             </div>
-            
-            <div style={{ marginBottom: '16px' }}>
-              <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: '12px', marginBottom: '4px' }}>Type</div>
-              <div style={{ color: '#fff', fontSize: '16px', fontWeight: 500 }}>
-                {getLeaveTypeLabel(selectedLeave.type)}
+
+            {[
+              { label: 'Employé',  value: selectedLeave.employee_name || selectedLeave.employee_id },
+              { label: 'Type',     value: getLeaveTypeLabel(selectedLeave.leave_type) },
+              { label: 'Période',  value: `${new Date(selectedLeave.start_date).toLocaleDateString('fr-FR')} → ${new Date(selectedLeave.end_date).toLocaleDateString('fr-FR')}` },
+              { label: 'Durée',    value: `${selectedLeave.days_count} jour(s)` },
+            ].map(({ label, value }) => (
+              <div key={label} style={{ marginBottom: '16px' }}>
+                <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: '12px', marginBottom: '4px' }}>{label}</div>
+                <div style={{ color: '#fff', fontSize: '14px' }}>{value}</div>
               </div>
-            </div>
-            
-            <div style={{ marginBottom: '16px' }}>
-              <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: '12px', marginBottom: '4px' }}>Période</div>
-              <div style={{ color: '#fff', fontSize: '14px' }}>
-                {new Date(selectedLeave.start_date).toLocaleDateString('fr-FR')} → {new Date(selectedLeave.end_date).toLocaleDateString('fr-FR')}
-              </div>
-            </div>
-            
-            <div style={{ marginBottom: '16px' }}>
-              <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: '12px', marginBottom: '4px' }}>Durée</div>
-              <div style={{ color: '#fff', fontSize: '14px' }}>{selectedLeave.days_count} jour(s)</div>
-            </div>
-            
+            ))}
+
             {selectedLeave.reason && (
               <div style={{ marginBottom: '16px' }}>
                 <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: '12px', marginBottom: '4px' }}>Motif</div>
@@ -377,42 +241,31 @@ const LeaveCalendar = () => {
                 </div>
               </div>
             )}
-            
-            <button
-              onClick={() => setSelectedLeave(null)}
-              style={{
-                width: '100%',
-                padding: '12px',
-                background: '#3b82f6',
-                border: 'none',
-                borderRadius: '8px',
-                color: '#fff',
-                fontSize: '14px',
-                fontWeight: 600,
-                cursor: 'pointer',
-                marginTop: '8px'
-              }}
-            >
+
+            <button onClick={() => setSelectedLeave(null)} style={{ width: '100%', padding: '12px', background: '#3b82f6', border: 'none', borderRadius: '8px', color: '#fff', fontSize: '14px', fontWeight: 600, cursor: 'pointer', marginTop: '8px' }}>
               Fermer
             </button>
           </div>
         </div>
       )}
 
-      {/* Résumé */}
-      <div style={{
-        marginTop: '24px',
-        padding: '16px',
-        background: 'rgba(255,255,255,0.03)',
-        borderRadius: '12px',
-        textAlign: 'center'
-      }}>
+      <div style={{ marginTop: '24px', padding: '16px', background: 'rgba(255,255,255,0.03)', borderRadius: '12px', textAlign: 'center' }}>
         <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: '13px' }}>
           📌 Les congés approuvés sont affichés sur le calendrier. Cliquez sur un congé pour voir les détails.
         </p>
       </div>
     </div>
   );
+};
+
+const btnStyle = {
+  background: 'rgba(255,255,255,0.05)',
+  border: '1px solid rgba(255,255,255,0.1)',
+  borderRadius: '8px',
+  padding: '8px 16px',
+  color: '#fff',
+  cursor: 'pointer',
+  fontSize: '16px',
 };
 
 export default LeaveCalendar;

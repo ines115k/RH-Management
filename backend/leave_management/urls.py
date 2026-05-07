@@ -1,13 +1,25 @@
 ﻿from django.urls import path
 from .views import (
-    CreateLeaveRequestView, MyLeaveRequestsView,
-    AllLeaveRequestsView, ReviewLeaveRequestView, LeaveStatsView
+    MyLeaveRequestsView,
+    CreateLeaveRequestView,
+    CancelLeaveRequestView,
+    AllLeaveRequestsView,
+    LeaveDecisionView,
+    LeaveStatsView,
+    LeaveSummaryView,
 )
 
 urlpatterns = [
-    path('create/', CreateLeaveRequestView.as_view(), name='leave-create'),
-    path('my-requests/', MyLeaveRequestsView.as_view(), name='leave-my-requests'),
-    path('all/', AllLeaveRequestsView.as_view(), name='leave-all'),
-    path('stats/', LeaveStatsView.as_view(), name='leave-stats'),
-    path('review/<str:pk>/', ReviewLeaveRequestView.as_view(), name='leave-review'),
+    # ── Employé ────────────────────────────────────────────────────────────────
+    path('my-requests/',          MyLeaveRequestsView.as_view(),    name='leave-my-requests'),
+    path('create/',               CreateLeaveRequestView.as_view(), name='leave-create'),
+    path('<str:pk>/cancel/',      CancelLeaveRequestView.as_view(), name='leave-cancel'),
+
+    # ── Admin / Manager ────────────────────────────────────────────────────────
+    path('all/',                  AllLeaveRequestsView.as_view(),   name='leave-all'),
+    path('<str:pk>/decision/',    LeaveDecisionView.as_view(),      name='leave-decision'),
+
+    # ── Stats ──────────────────────────────────────────────────────────────────
+    path('stats/',                LeaveStatsView.as_view(),         name='leave-stats'),
+    path('summary/',              LeaveSummaryView.as_view(),       name='leave-summary'),
 ]

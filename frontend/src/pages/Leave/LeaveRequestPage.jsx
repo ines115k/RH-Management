@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
-import { leaveAPI } from '../../services/leaveAPI';
+import { leaveAPI } from '../../api/leaveAPI'; // Assurez-vous que le chemin est correct
 
 const LeaveRequestPage = () => {
   const [formData, setFormData] = useState({
-    type: 'annual',
+    leave_type: 'annual',   // ← renommé
     start_date: '',
     end_date: '',
     reason: '',
@@ -36,7 +36,7 @@ const LeaveRequestPage = () => {
       await leaveAPI.createRequest(formData);
       setSuccess('✅ Demande de congé envoyée avec succès !');
       setFormData({
-        type: 'annual',
+        leave_type: 'annual',
         start_date: '',
         end_date: '',
         reason: '',
@@ -103,8 +103,8 @@ const LeaveRequestPage = () => {
             Type de congé *
           </label>
           <select
-            name="type"
-            value={formData.type}
+            name="leave_type"   // ← modifié
+            value={formData.leave_type}
             onChange={handleChange}
             style={{
               width: '100%',

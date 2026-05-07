@@ -17,13 +17,13 @@ export default function AppLayout() {
 
   if (!user) return <Navigate to="/login" replace />
 
-  // Choisir la sidebar selon le rôle
-  const isAdminOrManager = user?.role === 'admin' || user?.role === 'manager'
-  const SelectedSidebar = isAdminOrManager ? Sidebar : SidebarEmploye
+  // Choix du sidebar en fonction du rôle
+  const isEmployee = user.role === 'employee'
+  const SidebarComponent = isEmployee ? SidebarEmploye : Sidebar
 
   return (
     <div style={{ display: 'flex', minHeight: '100vh', background: '#0d0d1a', fontFamily: "'Inter', system-ui, sans-serif" }}>
-      <SelectedSidebar />
+      <SidebarComponent />
       <main style={{ flex: 1, overflowY: 'auto', minWidth: 0 }}>
         <Outlet />
       </main>

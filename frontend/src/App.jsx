@@ -35,6 +35,7 @@ function AttendanceWrapper() {
   return isAdmin || isManager ? <AttendancePage /> : <AttendanceEmp />
 }
 
+
 export default function App() {
   return (
     <BrowserRouter>
@@ -49,7 +50,7 @@ export default function App() {
             <Route path="/attendance/history" element={<AttendanceHistory />} />
             <Route path="/leave/request" element={<LeaveRequestPage />} />
             <Route path="/leave/list"    element={<LeaveListPage />} />
-            <Route path="/leave/calendar" element={<LeaveCalendar />} />
+            <Route path="/leave/calendar" element={<LeaveCalendar /> } />
             <Route path="/payroll" element={<PayrollPage />} />
             <Route path="/payroll/employee" element={<PayrollEmploye />} />
             <Route path="/recruitment" element={<RecruitmentPage />} />

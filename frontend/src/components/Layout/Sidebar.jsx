@@ -9,6 +9,7 @@ const NAV = [
   { to: '/payroll',     icon: '💳', label: 'Paie',         adminOnly: false },
   { to: '/recruitment', icon: '🎯', label: 'Recrutement',  adminOnly: false },
   { to: '/users',       icon: '🔑', label: 'Utilisateurs', adminOnly: true  },
+  { to: '/leave/calendar', icon: '📆', label: 'Calendrier des congés', adminOnly: true },
 ]
 
 export default function Sidebar() {

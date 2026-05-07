@@ -1,3 +1,5 @@
+from datetime import datetime
+from bson import ObjectId
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
@@ -10,38 +12,53 @@ from .serializers import (
     UserSerializer, UpdateProfileSerializer,
     ChangePasswordSerializer
 )
+from employees.models import Employee
 
 
 def get_tokens_for_user(user):
-    """
-    Génère access + refresh JWT pour un utilisateur MongoEngine.
-    IMPORTANT : on convertit explicitement l'ObjectId en str —
-    jwt.encode() ne sait pas sérialiser ObjectId en JSON.
-    """
-    # str(user.pk) fonctionne même si la propriété @id est écrasée par MongoEngine
     user_id_str = str(user.pk)
-
     refresh = RefreshToken()
-    refresh['user_id']    = user_id_str          # ← str, pas ObjectId
+    refresh['user_id']    = user_id_str
     refresh['email']      = str(user.email)
     refresh['role']       = str(user.role)
     refresh['first_name'] = str(user.first_name or '')
     refresh['last_name']  = str(user.last_name  or '')
-
     return {
         'refresh': str(refresh),
         'access':  str(refresh.access_token),
     }
 
 
-# ── Register ──────────────────────────────────────────────────────────────────
 class RegisterView(APIView):
     permission_classes = [AllowAny]
 
     def post(self, request):
         serializer = RegisterSerializer(data=request.data)
         if serializer.is_valid():
-            user   = serializer.save()
+            user = serializer.save()
+            if user.role == 'employee':
+                # Recherche insensible à la casse d'une fiche Employee existante
+                existing_employee = Employee.objects(email__iexact=user.email).first()
+                if existing_employee:
+                    # Lier la fiche existante
+                    existing_employee.user_id = str(user.pk)
+                    existing_employee.save()
+                else:
+                    # Créer une nouvelle fiche
+                    count = Employee.objects.count()
+                    employee_id = f"EMP-{count + 1:04d}"
+                    Employee(
+                        user_id=str(user.pk),
+                        first_name=user.first_name,
+                        last_name=user.last_name,
+                        email=user.email,
+                        employee_id=employee_id,
+                        department="À définir",
+                        position="À définir",
+                        hire_date=datetime.utcnow(),
+                        status='active',
+                        contract_type='cdi',
+                    ).save()
             tokens = get_tokens_for_user(user)
             return Response({
                 'user':   UserSerializer(user).data,
@@ -50,7 +67,6 @@ class RegisterView(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-# ── Login ─────────────────────────────────────────────────────────────────────
 class LoginView(APIView):
     permission_classes = [AllowAny]
 
@@ -62,7 +78,6 @@ class LoginView(APIView):
         email    = serializer.validated_data['email']
         password = serializer.validated_data['password']
 
-        # Chercher l'utilisateur par email
         try:
             user = User.objects.get(email=email)
         except User.DoesNotExist:
@@ -76,14 +91,12 @@ class LoginView(APIView):
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
-        # Vérifier le mot de passe
         if not user.check_password(password):
             return Response(
                 {'detail': 'Email ou mot de passe incorrect.'},
                 status=status.HTTP_401_UNAUTHORIZED
             )
 
-        # Vérifier que le compte est actif
         if not user.is_active:
             return Response(
                 {'detail': 'Ce compte est désactivé. Contactez votre administrateur.'},
@@ -97,7 +110,6 @@ class LoginView(APIView):
         })
 
 
-# ── Logout ────────────────────────────────────────────────────────────────────
 class LogoutView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -112,7 +124,6 @@ class LogoutView(APIView):
         return Response({'detail': 'Déconnexion réussie.'})
 
 
-# ── Profile ───────────────────────────────────────────────────────────────────
 class ProfileView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -130,7 +141,6 @@ class ProfileView(APIView):
         return Response(UserSerializer(user).data)
 
 
-# ── Change Password ───────────────────────────────────────────────────────────
 class ChangePasswordView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -149,7 +159,6 @@ class ChangePasswordView(APIView):
         return Response({'detail': 'Mot de passe mis à jour avec succès.'})
 
 
-# ── Refresh Token ─────────────────────────────────────────────────────────────
 class TokenRefreshView(APIView):
     permission_classes = [AllowAny]
 
@@ -164,7 +173,6 @@ class TokenRefreshView(APIView):
             )
 
 
-# ── Liste des utilisateurs (admin seulement) ──────────────────────────────────
 class UserListView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -178,7 +186,6 @@ class UserListView(APIView):
         return Response(UserSerializer(users, many=True).data)
 
 
-# ── Détail / Modification / Désactivation d'un utilisateur (admin) ────────────
 class UserDetailView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -207,6 +214,30 @@ class UserDetailView(APIView):
             if field in request.data:
                 setattr(u, field, request.data[field])
         u.save()
+
+        if u.role == 'employee':
+            # Chercher une fiche Employee existante avec le même email (insensible à la casse)
+            existing_employee = Employee.objects(email__iexact=u.email).first()
+            if existing_employee:
+                if existing_employee.user_id != str(u.pk):
+                    existing_employee.user_id = str(u.pk)
+                    existing_employee.save()
+            else:
+                if not Employee.objects(user_id=str(u.pk)).first():
+                    count = Employee.objects.count()
+                    employee_id = f"EMP-{count + 1:04d}"
+                    Employee(
+                        user_id=str(u.pk),
+                        first_name=u.first_name,
+                        last_name=u.last_name,
+                        email=u.email,
+                        employee_id=employee_id,
+                        department="À définir",
+                        position="À définir",
+                        hire_date=datetime.utcnow(),
+                        status='active',
+                        contract_type='cdi',
+                    ).save()
         return Response(UserSerializer(u).data)
 
     def delete(self, request, pk):

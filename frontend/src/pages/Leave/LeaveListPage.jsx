@@ -134,7 +134,7 @@ const LeaveListPage = () => {
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px', flexWrap: 'wrap', gap: '8px' }}>
                 <div>
                   <h3 style={{ color: '#fff', fontSize: '18px', fontWeight: 600, marginBottom: '8px' }}>
-                    {leaveTypes[request.type]}
+                    {leaveTypes[request.leave_type]}
                   </h3>
                   <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: '14px', marginBottom: '4px' }}>
                     Du {formatDate(request.start_date)} au {formatDate(request.end_date)}

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { attendanceAPI } from '../../services/attendanceAPI';
+import { attendanceApi } from '../../api/attendanceApi'; 
 import LoadingSpinner from '../../components/common/LoadingSpinner';
 import ErrorMessage from '../../components/common/ErrorMessage';
 
@@ -16,10 +16,11 @@ const AttendanceEmp = () => {
   const loadTodayAttendance = async () => {
     try {
       setLoading(true);
-      const data = await attendanceAPI.getTodayAttendance();
-      setTodayAttendance(data);
+      const response = await attendanceApi.getMyToday();
+      setTodayAttendance(response.data?.record || null);
       setError(null);
     } catch (err) {
+      console.error(err);
       setError('Impossible de charger le pointage');
     } finally {
       setLoading(false);
@@ -29,8 +30,8 @@ const AttendanceEmp = () => {
   const handleCheckIn = async () => {
     try {
       setActionLoading(true);
-      const result = await attendanceAPI.checkIn();
-      alert(result.detail);
+      const result = await attendanceApi.checkInSelf();
+      alert(result.data?.detail || 'Arrivée enregistrée');
       await loadTodayAttendance();
     } catch (err) {
       alert(err.response?.data?.detail || 'Erreur lors du pointage entrée');
@@ -42,8 +43,10 @@ const AttendanceEmp = () => {
   const handleCheckOut = async () => {
     try {
       setActionLoading(true);
-      const result = await attendanceAPI.checkOut();
-      alert(`${result.detail}\nHeures travaillées: ${result.worked_hours}h`);
+      const result = await attendanceApi.checkOutSelf();
+      const detail = result.data?.detail || 'Départ enregistré';
+      const duration = result.data?.record?.duration || 0;
+      alert(`${detail}\nHeures travaillées: ${duration}h`);
       await loadTodayAttendance();
     } catch (err) {
       alert(err.response?.data?.detail || 'Erreur lors du pointage sortie');
@@ -54,6 +57,12 @@ const AttendanceEmp = () => {
 
   if (loading) return <LoadingSpinner />;
   if (error) return <ErrorMessage message={error} />;
+
+  const record = todayAttendance;
+  const hasCheckedIn = !!record?.check_in;
+  const checkInTime = record?.check_in ? new Date(record.check_in).toLocaleTimeString() : null;
+  const checkOutTime = record?.check_out ? new Date(record.check_out).toLocaleTimeString() : null;
+  const workedHours = record?.duration || 0;
 
   return (
     <div style={{ padding: '32px 36px', maxWidth: '800px', margin: '0 auto' }}>
@@ -69,7 +78,7 @@ const AttendanceEmp = () => {
       }}>
         <div style={{ textAlign: 'center', marginBottom: '32px' }}>
           <div style={{ fontSize: '48px', marginBottom: '16px' }}>
-            {todayAttendance?.has_checked_in ? '✅' : '⏰'}
+            {hasCheckedIn ? '✅' : '⏰'}
           </div>
           <h2 style={{ color: '#fff', fontSize: '20px' }}>
             {new Date().toLocaleDateString('fr-FR', {
@@ -92,9 +101,9 @@ const AttendanceEmp = () => {
           }}>
             <div style={{ fontSize: '40px', marginBottom: '12px' }}>🚪</div>
             <h3 style={{ color: '#fff', fontSize: '18px', marginBottom: '12px' }}>Entrée</h3>
-            {todayAttendance?.check_in ? (
+            {checkInTime ? (
               <p style={{ color: '#4ade80', fontSize: '24px', fontWeight: 'bold' }}>
-                {new Date(todayAttendance.check_in).toLocaleTimeString()}
+                {checkInTime}
               </p>
             ) : (
               <button
@@ -126,16 +135,16 @@ const AttendanceEmp = () => {
           }}>
             <div style={{ fontSize: '40px', marginBottom: '12px' }}>🏠</div>
             <h3 style={{ color: '#fff', fontSize: '18px', marginBottom: '12px' }}>Sortie</h3>
-            {todayAttendance?.check_out ? (
+            {checkOutTime ? (
               <div>
                 <p style={{ color: '#4ade80', fontSize: '24px', fontWeight: 'bold' }}>
-                  {new Date(todayAttendance.check_out).toLocaleTimeString()}
+                  {checkOutTime}
                 </p>
                 <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: '14px', marginTop: '8px' }}>
-                  Heures: {todayAttendance.worked_hours}h
+                  Heures: {workedHours}h
                 </p>
               </div>
-            ) : todayAttendance?.has_checked_in ? (
+            ) : hasCheckedIn ? (
               <button
                 onClick={handleCheckOut}
                 disabled={actionLoading}

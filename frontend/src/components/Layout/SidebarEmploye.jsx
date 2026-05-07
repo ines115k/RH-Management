@@ -7,20 +7,19 @@ const SidebarEmploye = () => {
 
   // Menu pour EMPLOYÉ seulement
   const employeeMenus = [
-    { path: '/attendance', label: '📍 Mes présences', icon: '🕐' },
-    { path: '/attendance/history', label: '📋 Historique présences', icon: '📋' },
+    { path: '/attendance', label: '📍 Mes présences' },
+    { path: '/attendance/history', label: '📋 Historique présences' },
     { 
       label: '🏖️ Mes congés', 
-      icon: '🏖️',
+
       isSubmenu: true,
       subItems: [
-        { path: '/leave/request', label: '✏️ Demander', icon: '✏️' },
-        { path: '/leave/list', label: '📋 Mes demandes', icon: '📋' },
-        { path: '/leave/calendar', label: '📆 Calendrier', icon: '📆' },
+        { path: '/leave/request', label: '✏️ Demander' },
+        { path: '/leave/list', label: '📋 Mes demandes' },
       ]
     },
-    { path: '/payroll/employee', label: '💰 Ma paie', icon: '💰' },
-    { path: '/recruitment/employee', label: '🎯 Offres internes', icon: '🎯' },
+    { path: '/payroll/employee', label: '💰 Ma paie' },
+    { path: '/recruitment/employee', label: '🎯 Offres internes' },
   ]
 
   const SubmenuItem = ({ item }) => {

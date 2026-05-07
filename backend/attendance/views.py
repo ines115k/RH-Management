@@ -194,28 +194,20 @@ class AttendanceTodayView(APIView):
 
 
 class MyAttendanceTodayView(APIView):
-    """GET /api/attendance/my-today/ — Pointage du jour pour l'employé connecté."""
-    permission_classes = [IsAuthenticated]
-
     def get(self, request):
         try:
             emp = Employee.objects.get(user_id=str(request.user.pk))
         except Exception:
             return Response({'detail': 'Fiche employé introuvable.'}, status=404)
 
-        today  = date.today()
-        record = Attendance.objects(
-            employee_id=str(emp.pk),
-            date=today
-        ).first()
-
+        today = datetime.utcnow().date()   # ← date UTC
+        record = Attendance.objects(employee_id=str(emp.pk), date=today).first()
         return Response({
-            'employee_id':   str(emp.pk),
+            'employee_id': str(emp.pk),
             'employee_name': emp.full_name,
-            'date':          today.isoformat(),
-            'record':        AttendanceSerializer(record).data if record else None,
+            'date': today.isoformat(),
+            'record': AttendanceSerializer(record).data if record else None,
         })
-
 
 class AttendanceStatsView(APIView):
     """GET /api/attendance/stats/ — Statistiques du mois."""
@@ -526,3 +518,105 @@ class LeaveSummaryView(APIView):
             'total_approved': sum(by_type.values()),
             'pending_count': pending_count,
         })
+class CheckOutSelfView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        print("=== Début CheckOutSelfView ===")
+        try:
+            emp = Employee.objects.get(user_id=str(request.user.pk))
+            employee_id = str(emp.pk)
+            print(f"Employé trouvé : {emp.full_name} (ID: {employee_id})")
+        except Exception as e:
+            print(f"Erreur employé : {e}")
+            return Response({'detail': 'Fiche employé introuvable.'}, status=404)
+
+        # Requête : pointages sans check_out, triés par date décroissante
+        query = Attendance.objects(employee_id=employee_id, check_out=None).order_by('-date')
+        print(f"Nombre de pointages sans check_out : {query.count()}")
+        record = query.first()
+
+        if not record:
+            # Vérifier s'il y a des pointages du tout
+            total = Attendance.objects(employee_id=employee_id).count()
+            print(f"Total pointages pour cet employé : {total}")
+            if total > 0:
+                # Afficher le dernier pointage (même avec check_out)
+                last = Attendance.objects(employee_id=employee_id).order_by('-date').first()
+                print(f"Dernier pointage : date={last.date}, check_in={last.check_in}, check_out={last.check_out}")
+                return Response({
+                    'detail': f'Aucun pointage en attente. Dernier pointage du {last.date} a déjà une sortie.'
+                }, status=400)
+            else:
+                return Response({'detail': 'Aucun pointage trouvé pour cet employé.'}, status=400)
+
+        print(f"Pointage trouvé : ID={record.id}, date={record.date}, check_in={record.check_in}")
+        record.check_out = datetime.utcnow()
+        record.save()
+        print("Sortie enregistrée.")
+        return Response({
+            'detail': 'Départ enregistré avec succès.',
+            'record': AttendanceSerializer(record).data,
+        })
+class CheckInSelfView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        try:
+            emp = Employee.objects.get(user_id=str(request.user.pk))
+            employee_id = str(emp.pk)
+        except Exception:
+            return Response({'detail': 'Fiche employé introuvable.'}, status=404)
+
+        note = request.data.get('note', '')
+        today = datetime.utcnow().date()   # ← date UTC
+        now = datetime.utcnow()
+
+        existing = Attendance.objects(employee_id=employee_id, date=today).first()
+
+        if existing:
+            if existing.check_in:
+                return Response(
+                    {'detail': 'Vous avez déjà pointé votre arrivée aujourd\'hui.',
+                     'check_in': existing.check_in.isoformat()},
+                    status=400
+                )
+            existing.check_in = now
+            existing.note = note
+            existing.save()
+            record = existing
+        else:
+            record = Attendance(
+                employee_id=employee_id,
+                employee_name=emp.full_name,
+                date=today,
+                check_in=now,
+                status='present',
+                note=note,
+                created_by=str(request.user.pk),
+            )
+            record.save()
+
+        return Response({
+            'detail': 'Arrivée enregistrée avec succès.',
+            'record': AttendanceSerializer(record).data,
+        }, status=201)
+class AttendanceHistoryView(APIView):
+    """GET /api/attendance/history/ — Historique des pointages pour l'employé connecté."""
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        try:
+            emp = Employee.objects.get(user_id=str(request.user.pk))
+            employee_id = str(emp.pk)
+        except Exception:
+            return Response({'detail': 'Fiche employé introuvable.'}, status=404)
+
+        # Récupérer les paramètres
+        limit = int(request.query_params.get('limit', 30))
+        # Par défaut, on prend les 30 derniers enregistrements (les plus récents d'abord)
+        records = Attendance.objects(employee_id=employee_id) \
+                                .order_by('-date') \
+                                .limit(limit)
+
+        return Response(AttendanceSerializer(list(records), many=True).data)     
