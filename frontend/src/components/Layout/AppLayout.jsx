@@ -1,6 +1,7 @@
 import { Outlet, Navigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import Sidebar from './Sidebar'
+import SidebarEmploye from './SidebarEmploye'
 import { Spinner } from '../ui/index.jsx'
 
 export default function AppLayout() {
@@ -16,9 +17,13 @@ export default function AppLayout() {
 
   if (!user) return <Navigate to="/login" replace />
 
+  // Choisir la sidebar selon le rôle
+  const isAdminOrManager = user?.role === 'admin' || user?.role === 'manager'
+  const SelectedSidebar = isAdminOrManager ? Sidebar : SidebarEmploye
+
   return (
     <div style={{ display: 'flex', minHeight: '100vh', background: '#0d0d1a', fontFamily: "'Inter', system-ui, sans-serif" }}>
-      <Sidebar />
+      <SelectedSidebar />
       <main style={{ flex: 1, overflowY: 'auto', minWidth: 0 }}>
         <Outlet />
       </main>
