@@ -1,0 +1,78 @@
+# Bytecode Python
+*.pyc
+*.pyo
+*.pyd
+__pycache__/
+
+# Distributions / paquets
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+
+# Environnements virtuels
+venv/
+env/
+ENV/
+.venv
+
+# Fichiers de base de données SQLite (vous n’en utilisez pas, mais par précaution)
+*.db
+*.sqlite3
+
+# Fichiers de logs
+*.log
+
+# Fichiers d’environnement
+.env
+*.env
+.env.*
+!.env.example
+
+# IDE / éditeurs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Django (fichiers de migrations ? Vous utilisez MongoEngine, mais on garde)
+*/migrations/*.py
+!*/migrations/__init__.py
+
+# Node / React
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# Build frontend
+dist/
+build/
+out/
+
+# Fichiers de test
+.coverage
+htmlcov/
+.pytest_cache/
+.tox/
+
+# Archives diverses
+*.zip
+*.tar.gz
+*.rar
+
+# Fichiers média téléchargés (CVs, photos, etc.) – à adapter selon vos besoins
+media/
+!media/.gitkeep
+
+# Fichiers temporaires du projet
+*.tmp
+*.bak
+
+# Dossiers spécifiques à certains OS
+Thumbs.db
+Desktop.ini
