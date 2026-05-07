@@ -7,16 +7,8 @@ const SidebarEmploye = () => {
 
   // Menu pour EMPLOYÉ seulement
   const employeeMenus = [
-    { path: '/dashboard', label: '📊 Mon tableau de bord', icon: '📊' },
-    { 
-      label: '📅 Mes présences', 
-      icon: '🕐',
-      isSubmenu: true,
-      subItems: [
-        { path: '/attendance', label: '📍 Pointer', icon: '📍' },
-        { path: '/attendance/history', label: '📋 Historique', icon: '📋' },
-      ]
-    },
+    { path: '/attendance', label: '📍 Mes présences', icon: '🕐' },
+    { path: '/attendance/history', label: '📋 Historique présences', icon: '📋' },
     { 
       label: '🏖️ Mes congés', 
       icon: '🏖️',

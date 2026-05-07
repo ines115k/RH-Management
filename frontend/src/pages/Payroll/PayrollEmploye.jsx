@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { attendanceAPI } from '../../services/attendanceAPI';
 import { employeeAPI } from '../../services/employeeAPI';
-import LoadingSpinner from '../../components/Common/LoadingSpinner';
-import ErrorMessage from '../../components/Common/ErrorMessage';
+import LoadingSpinner from '../../components/common/LoadingSpinner';
+import ErrorMessage from '../../components/common/ErrorMessage';
 
 const PayrollEmploye = () => {
   const [loading, setLoading] = useState(true);

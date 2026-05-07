@@ -1,5 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
-import { AuthProvider } from './context/AuthContext'
+import { AuthProvider, useAuth } from './context/AuthContext'
 import AppLayout from './components/Layout/AppLayout'
 import Login from './pages/Login'
 import Dashboard from './pages/Dashboard'
@@ -7,6 +7,13 @@ import EmployeeList from './pages/Employees/EmployeeList'
 import EmployeeDetail from './pages/Employees/EmployeeDetail'
 import UsersPage from './pages/UsersPage'
 import AttendancePage from './pages/Attendance/AttendancePage'
+import AttendanceEmp from './pages/Attendance/AttendanceEmp'
+import AttendanceHistory from './pages/Attendance/AttendanceHistory'
+import LeaveRequestPage from './pages/Leave/LeaveRequestPage'
+import LeaveListPage from './pages/Leave/LeaveListPage'
+import LeaveCalendar from './pages/Leave/LeaveCalendar'
+import PayrollEmploye from './pages/Payroll/PayrollEmploye'
+import RecruitmentEmploye from './pages/Recruitment/RecruitmentEmploye'
 import PayrollPage from './pages/Payroll/PayrollPage';
 import RecruitmentPage from './pages/Recruitment/RecruitmentPage';
 
@@ -22,6 +29,12 @@ function Placeholder({ title, icon }) {
   )
 }
 
+// Conditional attendance component
+function AttendanceWrapper() {
+  const { isAdmin, isManager } = useAuth()
+  return isAdmin || isManager ? <AttendancePage /> : <AttendanceEmp />
+}
+
 export default function App() {
   return (
     <BrowserRouter>
@@ -32,9 +45,15 @@ export default function App() {
             <Route path="/dashboard"     element={<Dashboard />} />
             <Route path="/employees"     element={<EmployeeList />} />
             <Route path="/employees/:id" element={<EmployeeDetail />} />
-            <Route path="/attendance"    element={<AttendancePage />} />
+            <Route path="/attendance"    element={<AttendanceWrapper />} />
+            <Route path="/attendance/history" element={<AttendanceHistory />} />
+            <Route path="/leave/request" element={<LeaveRequestPage />} />
+            <Route path="/leave/list"    element={<LeaveListPage />} />
+            <Route path="/leave/calendar" element={<LeaveCalendar />} />
             <Route path="/payroll" element={<PayrollPage />} />
+            <Route path="/payroll/employee" element={<PayrollEmploye />} />
             <Route path="/recruitment" element={<RecruitmentPage />} />
+            <Route path="/recruitment/employee" element={<RecruitmentEmploye />} />
             <Route path="/users"         element={<UsersPage />} />
           </Route>
           <Route path="/"  element={<Navigate to="/dashboard" replace />} />

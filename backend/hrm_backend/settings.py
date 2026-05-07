@@ -24,6 +24,7 @@ INSTALLED_APPS = [
     'attendance',
     'payroll',
     'recruitment',
+    'leave_management',
 ]
 
 MIDDLEWARE = [

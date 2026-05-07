@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { leaveAPI } from '../../services/leaveAPI';
-import LoadingSpinner from '../../components/Common/LoadingSpinner';
-import ErrorMessage from '../../components/Common/ErrorMessage';
+import LoadingSpinner from '../../components/common/LoadingSpinner';
+import ErrorMessage from '../../components/common/ErrorMessage';
 
 const LeaveCalendar = () => {
   const [currentDate, setCurrentDate] = useState(new Date());

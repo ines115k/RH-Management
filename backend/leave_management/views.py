@@ -60,13 +60,22 @@ class AllLeaveRequestsView(APIView):
         
         qs = LeaveRequest.objects()
         
+        # Si l'utilisateur n'est pas admin/manager, ne montrer que les congés approuvés
+        if request.user.role not in ['admin', 'manager']:
+            qs = qs.filter(status='approved')
+            # Pour les employés, on peut aussi filtrer pour ne pas montrer leurs propres congés si souhaité
+            # qs = qs.filter(employee_id__ne=str(request.user.id))  # Uncomment if employees shouldn't see their own approved leaves
+        
         if status_filter:
             qs = qs.filter(status=status_filter)
         if employee_id:
             qs = qs.filter(employee_id=employee_id)
         
-        qs = qs.order_by('-created_at')
-        return Response(LeaveRequestSerializer(qs, many=True).data)
+        # Évaluer le queryset et trier en Python
+        leaves = list(qs)
+        leaves.sort(key=lambda x: x.created_at, reverse=True)
+        
+        return Response(LeaveRequestSerializer(leaves, many=True).data)
 
 class ReviewLeaveRequestView(APIView):
     authentication_classes = [MongoJWTAuthentication]

@@ -8,8 +8,21 @@ import { Card, Spinner } from '../components/ui/index.jsx'
 const COLORS = ['#7c5cbf', '#1d9e75', '#e8a430', '#3b82f6', '#e85d24', '#a78bfa']
 
 export default function Dashboard() {
-  const { user } = useAuth()
-  const navigate  = useNavigate()
+  const { user, isAdmin, isManager } = useAuth()
+  const navigate = useNavigate()
+
+  // If user is employee (not admin or manager), redirect to attendance
+  useEffect(() => {
+    if (!isAdmin && !isManager) {
+      navigate('/attendance', { replace: true })
+    }
+  }, [isAdmin, isManager, navigate])
+
+  // If still loading or redirecting, show nothing or spinner
+  if (!isAdmin && !isManager) {
+    return <Spinner />
+  }
+
   const [stats, setStats]   = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError]   = useState('')

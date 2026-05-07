@@ -8,4 +8,5 @@ urlpatterns = [
     path('api/attendance/',  include('attendance.urls')),
     path('api/payroll/', include('payroll.urls')),
     path('api/recruitment/', include('recruitment.urls')),
+    path('api/leave/', include('leave_management.urls')),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

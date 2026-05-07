@@ -5,10 +5,12 @@ from .views import (
     EmployeePhotoView,
     EmployeeStatsView,
     EmployeeHistoryView,
+    MyEmployeeInfoView,
 )
 
 urlpatterns = [
     path('',                   EmployeeListView.as_view(),    name='employee-list'),
+    path('me/',                MyEmployeeInfoView.as_view(),  name='employee-me'),
     path('stats/',             EmployeeStatsView.as_view(),   name='employee-stats'),
     path('<str:pk>/',          EmployeeDetailView.as_view(),  name='employee-detail'),
     path('<str:pk>/photo/',    EmployeePhotoView.as_view(),   name='employee-photo'),

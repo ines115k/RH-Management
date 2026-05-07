@@ -244,3 +244,35 @@ class EmployeeHistoryView(APIView):
             'current_department': emp.department,
             'history': PositionHistorySerializer(history, many=True).data,
         })
+
+
+# ── Informations de l'employé connecté ────────────────────────────────────────
+class MyEmployeeInfoView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        try:
+            emp = Employee.objects.get(user_id=str(request.user.pk))
+            return Response(EmployeeSerializer(emp).data)
+        except Employee.DoesNotExist:
+            # Si pas d'employé trouvé, retourner une structure compatible
+            return Response({
+                'id': None,
+                'user_id': str(request.user.pk),
+                'first_name': request.user.first_name or '',
+                'last_name': request.user.last_name or '',
+                'email': request.user.email,
+                'employee_id': 'N/A',
+                'department': 'Non défini',
+                'position': 'Non défini',
+                'base_salary': 0,
+                'status': 'unknown',
+                'hire_date': None,
+                'contract_type': 'unknown',
+                'message': 'Profil employé non configuré. Contactez votre administrateur.'
+            })
+        except Exception as e:
+            return Response(
+                {'detail': f'Erreur serveur : {str(e)}'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
