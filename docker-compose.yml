@@ -1,0 +1,48 @@
+version: '3.8'
+
+services:
+  # MongoDB
+  mongodb:
+    image: mongo:7.0
+    container_name: rh-mongodb
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+    networks:
+      - rh-network
+
+  # Backend Django
+  backend:
+    build: ./backend
+    container_name: rh-backend
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app
+    environment:
+      - MONGO_HOST=mongodb
+      - MONGO_PORT=27017
+      - MONGO_DB_NAME=hrm_db
+    depends_on:
+      - mongodb
+    networks:
+      - rh-network
+
+  # Frontend React
+  frontend:
+    build: ./frontend
+    container_name: rh-frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+    networks:
+      - rh-network
+
+volumes:
+  mongodb_data:
+
+networks:
+  rh-network:
+    driver: bridge
