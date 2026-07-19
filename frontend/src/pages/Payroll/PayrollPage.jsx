@@ -38,7 +38,7 @@ function GenerateModal({ onClose, onGenerated }) {
 
   useEffect(() => {
     employeesApi.getAll({ limit: 500, status: 'active' })
-      .then(({ data }) => setEmployees(data.employees))
+      .then(({ data }) => setEmployees(data.employees || []))
       .catch(() => {});
   }, []);
 

@@ -159,7 +159,7 @@ export default function EmployeeList() {
       <div style={{ background: '#13131f', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 12, overflow: 'hidden' }}>
         {loading ? (
           <Spinner />
-        ) : data.employees.length === 0 ? (
+        ) : !data.employees || data.employees.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '60px 0', color: 'rgba(255,255,255,0.3)' }}>
             <div style={{ fontSize: 40, marginBottom: 12 }}>👥</div>
             <p>Aucun employé trouvé</p>
@@ -174,7 +174,7 @@ export default function EmployeeList() {
               </tr>
             </thead>
             <tbody>
-              {data.employees.map((emp) => (
+              {(data.employees || []).map((emp) => (
                 <EmployeeRow key={emp.id} emp={emp} onEdit={openEdit} onArchive={handleArchive} canManage={canManage} />
               ))}
             </tbody>

@@ -24,7 +24,7 @@ function CreateAccountModal({ onClose, onCreated }) {
   useEffect(() => {
     if (step === 'linked') {
       employeesApi.getAll({ limit: 100, status: 'active' })
-        .then(({ data }) => setEmployees(data.employees))
+        .then(({ data }) => setEmployees(data.employees || []))
         .catch(() => {})
     }
   }, [step])

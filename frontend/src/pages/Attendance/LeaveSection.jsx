@@ -36,7 +36,7 @@ function AdminLeaveForm({ onClose, onCreated }) {
 
   useEffect(() => {
     employeesApi.getAll({ limit: 500, status: 'active' })
-      .then(({ data }) => setEmployees(data.employees))
+      .then(({ data }) => setEmployees(data.employees || []))
       .catch(() => {})
   }, [])
 
@@ -143,7 +143,7 @@ export default function LeaveSection() {
   // Charger la liste des employés pour les filtres
   useEffect(() => {
     employeesApi.getAll({ limit: 500, status: 'active' })
-      .then(({ data }) => setEmployeesList(data.employees))
+      .then(({ data }) => setEmployeesList(data.employees || []))
       .catch(() => {})
   }, [])
 
