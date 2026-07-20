@@ -91,3 +91,8 @@ jobs:
           echo "✅ Images poussées avec succès !"
           echo "  - ${{ secrets.DOCKERHUB_USERNAME }}/rh-backend:latest"
           echo "  - ${{ secrets.DOCKERHUB_USERNAME }}/rh-frontend:latest"
+     - name: 🚀 Déclencher le déploiement Render (backend)
+        run: curl -X POST "${{ secrets.RENDER_DEPLOY_HOOK_BACKEND }}"
+
+     - name: 🚀 Déclencher le déploiement Render (frontend)
+        run: curl -X POST "${{ secrets.RENDER_DEPLOY_HOOK_FRONTEND }}"
